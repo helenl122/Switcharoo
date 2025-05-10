@@ -74,7 +74,7 @@ const BalloonGame = () => {
     <View style={{ flex: 1 }}>
       <GameHeader style={{ position: 'absolute', top: 0, right: 0 }} />
       <ImageBackground
-        source={require('./Assets/backgroundimage.png')}
+        source={require('@/assets/balloon_game/backgroundimage.png')}
         resizeMode="cover"
         style={{ flex: 1, width: '100%', height: '100%' }}
         onStartShouldSetResponder={() => true}
@@ -96,7 +96,7 @@ const BalloonGame = () => {
               <Text style={{ fontSize: 24, fontWeight: 'bold' }}>popped</Text>
             ) : (
               <Image
-                source={require('./Assets/balloon.png')}
+                source={require('@/assets/balloon_game/balloon.png')}
                 style={{
                   width: balloonWidth,
                   height: balloonHeight,
