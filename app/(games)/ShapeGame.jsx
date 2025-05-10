@@ -1,5 +1,5 @@
 import { GetFormattedShape, GetRandomShapes } from '@/components/game_components/ShapeGame/Shapes';
-// import GameHeader from '@/components/GameHeader';
+import GameHeader from '@/components/GameHeader';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -150,7 +150,7 @@ export default function ShapeGame() {
         </Svg>
 
         {/* Game Header */}
-        {/* <GameHeader className="absolute top-0 right-0" /> */}
+        <GameHeader className="absolute top-0 right-0" />
       </View>
     </TouchableWithoutFeedback>
   );
