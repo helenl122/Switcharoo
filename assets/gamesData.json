@@ -1,0 +1,68 @@
+[
+    {
+        "gameName": "Pop The Balloon",
+        "gamePath": "BalloonGame",
+        "iconName": "balloon",
+        "iconColor": "#005463",
+        "tileColor": "#32C1DA",
+        "favorite": true,
+        "theme": "Cause & Effect",
+        "description": "Press the switch to pop the balloons!",
+        "switchType": "Single-Button Switch"
+    },
+    {
+        "gameName": "Stacking Blocks",
+        "gamePath": "BlockGame",
+        "iconName": "grid",
+        "iconColor": "#712500",
+        "tileColor": "#E96E32",
+        "favorite": false,
+        "theme": "Hand-Eye Coordination",
+        "description": "Press the switch to stack blocks as tall as you can!",
+        "switchType": "Single-Button Switch"
+    },
+    {
+        "gameName": "Sorting Game",
+        "gamePath": "ShapeGame",
+        "iconName": "shape-outline",
+        "iconColor": "#154D00",
+        "tileColor": "#6FB256",
+        "favorite": true,
+        "theme": "Classification",
+        "description": "Press the switch to sort objects into the correct categories!",
+        "switchType": "Single-Button Switch"
+    },
+    {
+        "gameName": "Treasure Hunt",
+        "gamePath": "/",
+        "iconName": "shovel",
+        "iconColor": "#5E0C2E",
+        "tileColor": "#C75785",
+        "favorite": false,
+        "theme": "Exploration",
+        "description": "Press the switch to uncover hidden treasures on the map!",
+        "switchType": "Single-Button Switch"
+    },
+    {
+        "gameName": "Crossy Roads",
+        "gamePath": "/",
+        "iconName": "road-variant",
+        "iconColor": "#949DEC",
+        "tileColor": "#323973",
+        "favorite": false,
+        "theme": "Timing & Motor Planning",
+        "description": "Press the switch to cross the roads and avoid obstacles!",
+        "switchType": "Single-Button Switch"
+    },
+    {
+        "gameName": "Music Play",
+        "gamePath": "/",
+        "iconName": "music",
+        "iconColor": "#740600",
+        "tileColor": "#FF5F57",
+        "favorite": false,
+        "theme": "Creativity",
+        "description": "Press the switch to trigger fun sounds. Experiment with different combinations!",
+        "switchType": "Single-Button Switch"
+    }
+]
