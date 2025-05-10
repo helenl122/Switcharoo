@@ -1,10 +1,10 @@
-// import ScreenHeader from "@/components/ScreenHeader";
+import ScreenHeader from "@/components/ScreenHeader";
 import { View } from "react-native";
 
 const SettingsScreen = () => {
     return (
         <View>
-            {/* <ScreenHeader headerTitle="Settings"/> */}
+            <ScreenHeader headerTitle="Settings"/>
         </View>
     );
 }

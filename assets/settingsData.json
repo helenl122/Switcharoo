@@ -1,0 +1,18 @@
+[
+    {
+        "header": "High Contrast Mode",
+        "description": "Improves visibility by increasing color contrast for easier readability and interaction."
+    },
+    {
+        "header": "Sound",
+        "description": "Toggle sound on or off to control audio feedback."
+    },
+    {
+        "header": "Haptics",
+        "description":"Toggle haptic feedback on or off for tactile notifications."
+    },
+    {
+        "header": "Enable Switch",
+        "description": "Choose how to interact: tap the screen or connect an external switch for accessible play."
+    }
+]

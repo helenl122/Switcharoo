@@ -1,0 +1,32 @@
+[
+    {
+        "q_id": 1,
+        "question": "How do I connect my switch to my iPad (iOS)?",
+        "answer": ""
+    },
+    {
+        "q_id": 2,
+        "question": "How do I connect my switch to my tablet?",
+        "answer": ""
+    },
+    {
+        "q_id": 3,
+        "question": "What is high contrast mode?",
+        "answer": ""
+    },
+    {
+        "q_id": 4,
+        "question": "What types of switches are compatible with this app?",
+        "answer": ""
+    },
+    {
+        "q_id": 5,
+        "question": "How do I enable Switch Access or Switch Control on my device?",
+        "answer": ""
+    },
+    {
+        "q_id": 6,
+        "question": "The app is not responding to my switch — what should I do?",
+        "answer": ""
+    }
+]
