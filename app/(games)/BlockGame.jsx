@@ -1,8 +1,9 @@
+import gif from '@/assets/block_game/fireworks.gif';
 import Block from '@/components/game_components/BlockGame/Block';
 import GameHeader from '@/components/GameHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { Image, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
 
 export default function BlockGame() {
     // block colors
@@ -21,6 +22,7 @@ export default function BlockGame() {
     const [level, setLevel] = useState(0);
     const [isPanning, setIsPanning] = useState(true);
     const [gameOver, setGameOver] = useState(false);
+    const [showGif, setShowGif] = useState(false);
 
     // game loop: rerender screen to create animation effect
     useEffect(() => {
@@ -28,9 +30,6 @@ export default function BlockGame() {
             // block is either panning or falling
             isPanning ? animationRef.current = 
                 requestAnimationFrame(panBlock) : requestAnimationFrame(fallBlock)
-        } else {
-            // completion animation 
-            console.log("game over!");
         }
     }, [currBlock]);
 
@@ -45,6 +44,7 @@ export default function BlockGame() {
         setStack([]);
         setLevel(0);
         setGameOver(false);
+        setShowGif(false);
     }
 
     // controls left/right movement of moving block w/n screen width
@@ -90,6 +90,7 @@ export default function BlockGame() {
             let hide = 0;
             if (nextLevel > numBlocks-2) {
                 setGameOver(true);
+                setShowGif(true);
                 hide = blockSize;
             }
             setCurrBlock(prevBlock => ({
@@ -106,15 +107,18 @@ export default function BlockGame() {
     return (
         <View className="flex-1">
             <GameHeader/>
+            {/* touchable expanded to whole space; can press anywhere on screen */}
             <TouchableWithoutFeedback className="absolute left-0 top-0 right-0 bottom-0" onPress={stopBlock}>
-                {/* touchable expanded to whole space */}
-                <View className="flex-1">
+                <View className="flex-1">           
                     {/* render stacked blocks*/}
                     {stack.map((block, index) => (
                         <Block key={index} {...block}/>
                     ))}
                     {/* moving block; to be stacked */}
                     <Block {...currBlock}/>
+                    {/* celebration gifs: hidden until game over */}
+                    {showGif && <Image className="absolute top-0 left-0" source={gif}/>}
+                    {showGif && <Image className="absolute bottom-0 right-0" source={gif}/>}
                 </View>
             </TouchableWithoutFeedback>
         </View>
