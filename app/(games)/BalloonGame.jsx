@@ -1,6 +1,14 @@
 import GameHeader from "@/components/GameHeader";
-import React, { useEffect, useState } from "react";
-import { Dimensions, Image, ImageBackground, Pressable, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
+import {
+  Dimensions,
+  Image,
+  ImageBackground,
+  Pressable,
+  View,
+  Text,
+} from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -19,10 +27,8 @@ const generateRandomPositions = (count) => {
   };
 
   const positions = [];
-
-  // Adjusting cell width/height relative to screen dimensions
-  const cellWidth = width / 4; // Divide screen width by 4 columns
-  const cellHeight = height / 2; // Divide screen height by 2 rows
+  const cellWidth = width / 4;
+  const cellHeight = height / 2;
   const maxBalloonWidth = 100;
   const maxBalloonHeight = 150;
 
@@ -31,12 +37,18 @@ const generateRandomPositions = (count) => {
     const col = cell % 4;
     const row = Math.floor(cell / 4);
 
-    const left = col * cellWidth + padding + Math.random() * (cellWidth - 2 * padding - maxBalloonWidth);
-    const top = row * cellHeight + padding + Math.random() * (cellHeight - 2 * padding - maxBalloonHeight);
+    const left =
+      col * cellWidth +
+      padding +
+      Math.random() * (cellWidth - 2 * padding - maxBalloonWidth);
+    const top =
+      row * cellHeight +
+      padding +
+      Math.random() * (cellHeight - 2 * padding - maxBalloonHeight);
 
     positions.push({
-      top: `${(top / height) * 100}%`, // Percentage of screen height
-      left: `${(left / width) * 100}%` // Percentage of screen width
+      top: `${(top / height) * 100}%`,
+      left: `${(left / width) * 100}%`,
     });
   }
 
@@ -45,68 +57,157 @@ const generateRandomPositions = (count) => {
 
 const BalloonGame = () => {
   const [popped, setPopped] = useState(Array(8).fill(false));
-  const [positions, setPositions] = useState([]);
+  const [exploding, setExploding] = useState(Array(8).fill(false));
+  const [gifKeys, setGifKeys] = useState(Array(8).fill(0));
+  const [positions, setPositions] = useState(generateRandomPositions(8));
+  const [showWinMessage, setShowWinMessage] = useState(false);
 
-  useEffect(() => {
+  function resetState() {
+    setPopped(Array(8).fill(false));
+    setExploding(Array(8).fill(false));
+    setGifKeys(Array(8).fill(0));
     setPositions(generateRandomPositions(8));
-  }, []);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      resetState();
+    }, [])
+  );
 
   const handlePressAnywhere = () => {
     const unpoppedIndexes = popped
       .map((isPopped, index) => (!isPopped ? index : null))
-      .filter(index => index !== null);
+      .filter((index) => index !== null);
 
-    if (unpoppedIndexes.length === 0) return;
+    if (unpoppedIndexes.length === 0) {
+      return;
+    }
 
     const randomIndex =
       unpoppedIndexes[Math.floor(Math.random() * unpoppedIndexes.length)];
 
-    const newPopped = [...popped];
-    newPopped[randomIndex] = true;
-    setPopped(newPopped);
+    setExploding((prev) => {
+      const newExploding = [...prev];
+      newExploding[randomIndex] = true;
+      return newExploding;
+    });
+
+    setGifKeys((prev) => {
+      const newKeys = [...prev];
+      newKeys[randomIndex] = Date.now();
+      return newKeys;
+    });
+
+    setPopped((prev) => {
+      const newPopped = [...prev];
+      newPopped[randomIndex] = true;
+
+      // Check for win condition after updating popped
+      if (newPopped.filter(Boolean).length === newPopped.length) {
+        setTimeout(() => {
+          setShowWinMessage(true);
+          setTimeout(() => {
+            setShowWinMessage(false);
+            resetState();
+          }, 1500);
+        }, 1000);
+      }
+
+      return newPopped;
+    });
+
+    setTimeout(() => {
+      setExploding((prev) => {
+        const updated = [...prev];
+        updated[randomIndex] = false;
+        return updated;
+      });
+    }, 600);
   };
 
-  // Dynamic balloon size based on screen size
-  const balloonWidth = Math.min(width / 6, 100);  // Set max width relative to screen width
-  const balloonHeight = Math.min(height / 6, 150); // Set max height relative to screen height
+  const balloonWidth = Math.min(width / 6, 100);
+  const balloonHeight = Math.min(height / 6, 150);
 
   return (
     <View style={{ flex: 1 }}>
-      <GameHeader style={{ position: 'absolute', top: 0, right: 0 }} />
+      <GameHeader style={{ position: "absolute", top: 0, right: 0 }} />
       <ImageBackground
-        source={require('@/assets/balloon_game/backgroundimage.png')}
+        source={require("@/assets/balloon_game/backgroundimage.png")}
         resizeMode="cover"
-        style={{ flex: 1, width: '100%', height: '100%' }}
+        style={{ flex: 1, width: "100%", height: "100%" }}
         onStartShouldSetResponder={() => true}
         onResponderRelease={handlePressAnywhere}
       >
         {positions.map((position, index) => (
           <Pressable
             key={index}
-            onPress={handlePressAnywhere} // <- This makes balloons tappable!
+            onPress={handlePressAnywhere}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: position.top,
               left: position.left,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
-            {popped[index] ? (
-              <Text style={{ fontSize: 24, fontWeight: 'bold' }}>popped</Text>
-            ) : (
+            {exploding[index] ? (
               <Image
-                source={require('@/assets/balloon_game/balloon.png')}
+                key={gifKeys[index]}
+                source={require("@/assets/balloon_game/explode.gif")}
+                style={{
+                  width: balloonWidth,
+                  height: balloonHeight,
+                  resizeMode: "contain",
+                }}
+              />
+            ) : !popped[index] ? (
+              <Image
+                source={require("@/assets/balloon_game/balloon.png")}
                 style={{
                   width: balloonWidth,
                   height: balloonHeight,
                   borderRadius: 12,
-                  resizeMode: 'contain'
+                  resizeMode: "contain",
                 }}
               />
-            )}
+            ) : null}
           </Pressable>
         ))}
+
+        {showWinMessage && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 10,
+            }}
+          >
+            <View
+              style={{
+                padding: 20,
+                backgroundColor: "white",
+                borderRadius: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                You win!
+              </Text>
+            </View>
+          </View>
+        )}
       </ImageBackground>
     </View>
   );
