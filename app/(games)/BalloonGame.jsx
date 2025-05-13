@@ -20,10 +20,8 @@ const generateRandomPositions = (count) => {
   };
 
   const positions = [];
-
-  // Adjusting cell width/height relative to screen dimensions
-  const cellWidth = width / 4; // Divide screen width by 4 columns
-  const cellHeight = height / 2; // Divide screen height by 2 rows
+  const cellWidth = width / 4;
+  const cellHeight = height / 2;
   const maxBalloonWidth = 100;
   const maxBalloonHeight = 150;
 
@@ -36,8 +34,8 @@ const generateRandomPositions = (count) => {
     const top = row * cellHeight + padding + Math.random() * (cellHeight - 2 * padding - maxBalloonHeight);
 
     positions.push({
-      top: `${(top / height) * 100}%`, // Percentage of screen height
-      left: `${(left / width) * 100}%` // Percentage of screen width
+      top: `${(top / height) * 100}%`,
+      left: `${(left / width) * 100}%`
     });
   }
 
@@ -46,16 +44,17 @@ const generateRandomPositions = (count) => {
 
 const BalloonGame = () => {
   const [popped, setPopped] = useState(Array(8).fill(false));
-  const [exploding, setExploding] = useState(Array(8).fill(false)); // Will store timestamp or false
+  const [exploding, setExploding] = useState(Array(8).fill(false));
+  const [gifKeys, setGifKeys] = useState(Array(8).fill(0));
   const [positions, setPositions] = useState(generateRandomPositions(8));
 
   function resetState() {
     setPopped(Array(8).fill(false));
     setExploding(Array(8).fill(false));
+    setGifKeys(Array(8).fill(0));
     setPositions(generateRandomPositions(8));
   }
 
-  // Reset game state when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       resetState();
@@ -66,82 +65,91 @@ const BalloonGame = () => {
     const unpoppedIndexes = popped
       .map((isPopped, index) => (!isPopped ? index : null))
       .filter(index => index !== null);
-    
+
     if (unpoppedIndexes.length === 0) {
       return;
     }
 
-    const randomIndex =
-      unpoppedIndexes[Math.floor(Math.random() * unpoppedIndexes.length)];
+    const randomIndex = unpoppedIndexes[Math.floor(Math.random() * unpoppedIndexes.length)];
 
-    // Show explosion animation
-    const newExploding = [...exploding];
-    newExploding[randomIndex] = true;
-    setExploding(newExploding);
-    
-    // Mark as popped (this tracks the game state)
-    const newPopped = [...popped];
-    newPopped[randomIndex] = true;
-    setPopped(newPopped);
-    
-    // Hide explosion after animation completes (adjust timing as needed)
+    // Update exploding and gifKeys using functional updates to prevent stale state issues
+    setExploding(prev => {
+      const newExploding = [...prev];
+      newExploding[randomIndex] = true;
+      return newExploding;
+    });
+
+    setGifKeys(prev => {
+      const newKeys = [...prev];
+      newKeys[randomIndex] = Date.now(); // or Math.random();
+      return newKeys;
+    });
+
+    setPopped(prev => {
+      const newPopped = [...prev];
+      newPopped[randomIndex] = true;
+      return newPopped;
+    });
+
     setTimeout(() => {
-      const updatedExploding = [...exploding];
-      updatedExploding[randomIndex] = false;
-      setExploding(updatedExploding);
-    }, 600); // Animation duration in milliseconds
+      setExploding(prev => {
+        const updated = [...prev];
+        updated[randomIndex] = false;
+        return updated;
+      });
+    }, 600);
 
-    if(newPopped.every(isPopped => isPopped)) {
+    if (popped.filter(Boolean).length + 1 === popped.length) {
       setTimeout(() => {
-        alert('You win!');
+        alert("You win!");
         resetState();
-      }, 1000); // Wait for animation to finish before showing win alert
+      }, 1000);
     }
   };
 
-  // Dynamic balloon size based on screen size
-  const balloonWidth = Math.min(width / 6, 100);  // Set max width relative to screen width
-  const balloonHeight = Math.min(height / 6, 150); // Set max height relative to screen height
+  const balloonWidth = Math.min(width / 6, 100);
+  const balloonHeight = Math.min(height / 6, 150);
 
   return (
     <View style={{ flex: 1 }}>
-      <GameHeader style={{ position: 'absolute', top: 0, right: 0 }} />
+      <GameHeader style={{ position: "absolute", top: 0, right: 0 }} />
       <ImageBackground
-        source={require('@/assets/balloon_game/backgroundimage.png')}
+        source={require("@/assets/balloon_game/backgroundimage.png")}
         resizeMode="cover"
-        style={{ flex: 1, width: '100%', height: '100%' }}
+        style={{ flex: 1, width: "100%", height: "100%" }}
         onStartShouldSetResponder={() => true}
         onResponderRelease={handlePressAnywhere}
       >
         {positions.map((position, index) => (
           <Pressable
             key={index}
-            onPress={handlePressAnywhere} // <- This makes balloons tappable!
+            onPress={handlePressAnywhere}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: position.top,
               left: position.left,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
             {exploding[index] ? (
               <Image
-                source={require('@/assets/balloon_game/explode.gif')}
+                key={gifKeys[index]} // Force restart GIF
+                source={require("@/assets/balloon_game/explode.gif")}
                 style={{
                   width: balloonWidth,
                   height: balloonHeight,
-                  resizeMode: 'contain'
+                  resizeMode: "contain",
                 }}
               />
             ) : !popped[index] ? (
               <Image
-                source={require('@/assets/balloon_game/balloon.png')}
+                source={require("@/assets/balloon_game/balloon.png")}
                 style={{
                   width: balloonWidth,
                   height: balloonHeight,
                   borderRadius: 12,
-                  resizeMode: 'contain'
+                  resizeMode: "contain",
                 }}
               />
             ) : null}
