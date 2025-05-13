@@ -1,7 +1,7 @@
 import GameHeader from "@/components/GameHeader";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
-import { Dimensions, Image, ImageBackground, Pressable, Text, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Pressable, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -46,10 +46,12 @@ const generateRandomPositions = (count) => {
 
 const BalloonGame = () => {
   const [popped, setPopped] = useState(Array(8).fill(false));
+  const [exploding, setExploding] = useState(Array(8).fill(false)); // Will store timestamp or false
   const [positions, setPositions] = useState(generateRandomPositions(8));
 
   function resetState() {
     setPopped(Array(8).fill(false));
+    setExploding(Array(8).fill(false));
     setPositions(generateRandomPositions(8));
   }
 
@@ -72,15 +74,28 @@ const BalloonGame = () => {
     const randomIndex =
       unpoppedIndexes[Math.floor(Math.random() * unpoppedIndexes.length)];
 
+    // Show explosion animation
+    const newExploding = [...exploding];
+    newExploding[randomIndex] = true;
+    setExploding(newExploding);
+    
+    // Mark as popped (this tracks the game state)
     const newPopped = [...popped];
     newPopped[randomIndex] = true;
     setPopped(newPopped);
+    
+    // Hide explosion after animation completes (adjust timing as needed)
+    setTimeout(() => {
+      const updatedExploding = [...exploding];
+      updatedExploding[randomIndex] = false;
+      setExploding(updatedExploding);
+    }, 600); // Animation duration in milliseconds
 
     if(newPopped.every(isPopped => isPopped)) {
       setTimeout(() => {
         alert('You win!');
         resetState();
-      }, 10);
+      }, 1000); // Wait for animation to finish before showing win alert
     }
   };
 
@@ -110,9 +125,16 @@ const BalloonGame = () => {
               alignItems: 'center',
             }}
           >
-            {popped[index] ? (
-              <Text style={{ fontSize: 24, fontWeight: 'bold' }}>popped</Text>
-            ) : (
+            {exploding[index] ? (
+              <Image
+                source={require('@/assets/balloon_game/explode.gif')}
+                style={{
+                  width: balloonWidth,
+                  height: balloonHeight,
+                  resizeMode: 'contain'
+                }}
+              />
+            ) : !popped[index] ? (
               <Image
                 source={require('@/assets/balloon_game/balloon.png')}
                 style={{
@@ -122,7 +144,7 @@ const BalloonGame = () => {
                   resizeMode: 'contain'
                 }}
               />
-            )}
+            ) : null}
           </Pressable>
         ))}
       </ImageBackground>
