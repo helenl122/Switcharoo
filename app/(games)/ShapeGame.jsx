@@ -1,158 +1,289 @@
 import { GetFormattedShape, GetRandomShapes } from '@/components/game_components/ShapeGame/Shapes';
 import GameHeader from '@/components/GameHeader';
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { Audio } from 'expo-av';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Easing,
+  SafeAreaView,
   TouchableWithoutFeedback,
-  View
+  View,
 } from 'react-native';
-import Svg from 'react-native-svg';
+import Svg, { G } from 'react-native-svg';
 
-// Screen dimensions
 const { width, height } = Dimensions.get('window');
 
-// Initial sizes of the shapes
 const targetShapeInitialSize = 180;
 const optionShapesInitialSize = 200;
 
-// Get random shapes
-const shapes = GetRandomShapes();
-const targetShapeType = shapes[Math.floor(Math.random() * shapes.length)];
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 export default function ShapeGame() {
-  // State to keep track of the selected index of shape options
+  const [shapes, setShapes] = useState(GetRandomShapes());
+  const [targetShapeType, setTargetShapeType] = useState(
+    shapes[Math.floor(Math.random() * shapes.length)]
+  );
+  const [availableShapes, setAvailableShapes] = useState(shapes);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // State to track if the index should keep changing or stop
   const [stopped, setStopped] = useState(false);
-  const [shapes, setShapes] = useState(GetRandomShapes()); // State for new shapes
-  const [targetShapeType, setTargetShapeType] = useState(shapes[Math.floor(Math.random() * shapes.length)]);
+  const [shapesMatched, setShapesMatched] = useState(false);
+  const [sound, setSound] = useState();
 
-  // Reference for the target shape's position for animation
-  const position = useRef(new Animated.ValueXY({
-    x: width / 2 - targetShapeInitialSize / 2, // Initially at the center
-    y: height / 3 - targetShapeInitialSize / 2 // Initial vertical position
-  })).current;
+  const position = useRef(
+    new Animated.ValueXY({
+      x: width / 2 - targetShapeInitialSize / 2,
+      y: height / 3 - targetShapeInitialSize,
+    })
+  ).current;
 
-  // Reference for the interval to stop or start changing shapes
+  const targetShake = useRef(new Animated.Value(0)).current;
+  const optionShake = useRef(new Animated.Value(0)).current;
   const intervalRef = useRef(null);
 
-  // Shape options (positions of shapes at the bottom of the screen)
-  const shapeOptions = [
-    { type: shapes[0], x: width / 5, y: 650 },
-    { type: shapes[1], x: width / 2, y: 650 },
-    { type: shapes[2], x: 4 * width / 5, y: 650 }
-  ];
+  const optionPositions = [width / 5, width / 2, (4 * width) / 5];
 
-  // Format the options to render them as SVG shapes
-  const formattedOptions = shapeOptions.map((shape, index) =>
-    GetFormattedShape({
-      ...shape,
-      size: optionShapesInitialSize,
-      fill: 'none',
-      stroke: currentIndex === index ? 'red' : 'white',
-      strokeWidth: 20
-    })
-  );
-
-  // Automatically cycles through shape options every 2 seconds
+  // Cycle between visible shapes
   useEffect(() => {
     if (!stopped) {
+      const visibleIndices = shapes
+        .map((shape, i) => (availableShapes.includes(shape) ? i : null))
+        .filter((i) => i !== null);
+
       intervalRef.current = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % 3);
+        setCurrentIndex((prev) => {
+          const currentVisibleIndex = visibleIndices.indexOf(prev);
+          const nextIndex = (currentVisibleIndex + 1) % visibleIndices.length;
+          return visibleIndices[nextIndex];
+        });
       }, 1500);
     }
-    // Cleanup interval when stopped or component unmounts
+
     return () => clearInterval(intervalRef.current);
-  }, [stopped]);
+  }, [stopped, availableShapes]);
 
-  // Function to animate target shape to the selected option when the screen is clicked
+  // Play cheering sound
+  const playCheeringSound = async () => {
+    const { sound } = await Audio.Sound.createAsync(
+      require('@/assets/audio/success_audio.mp3')
+    );
+    setSound(sound);
+    await sound.playAsync();
+  };
+
+  // Shake animation
+  const shakeAnimation = (animatedValue) => {
+    return Animated.sequence([
+      Animated.timing(animatedValue, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: 6,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: -6,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]);
+  };
+
   const animateToSelected = () => {
-    // Get the selected shape option
-    const selected = shapeOptions[currentIndex];
+  setStopped(true);
+  const selectedShape = shapes[currentIndex];
+  const x = optionPositions[currentIndex];
+  const y = height - (optionShapesInitialSize + 50);
 
-    // Calculate the new position for the target shape
-    const newX = selected.x - targetShapeInitialSize / 2;
-    const newY = selected.y - targetShapeInitialSize / 2;
-
-    // Animate the target shape's position
-    Animated.timing(position, {
-      toValue: { x: newX, y: newY },
-      easing: Easing.linear,
-      useNativeDriver: false // We are animating position, not transforms
-    }).start();
-
-    // Stop the index changes after screen click
-    setStopped(true);
-
-    // After animation completes, check if target and selected shapes match
-    Animated.timing(position, {
-      toValue: { x: newX, y: newY },
-      duration: 300, // Duration of the animation
-      easing: Easing.linear,
-      useNativeDriver: false
-    }).start(() => {
-      if (targetShapeType === selected.type) {
-        // If they match, restart the game with new shapes
+  Animated.timing(position, {
+    toValue: {
+      x: x - targetShapeInitialSize / 2,
+      y: y - targetShapeInitialSize / 2,
+    },
+    duration: 300,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  }).start(() => {
+    if (selectedShape === targetShapeType) {
+      setShapesMatched(true);
+      playCheeringSound();
+      setTimeout(() => restartGame(true), 1500);
+    } else {
+      Animated.parallel([
+        shakeAnimation(targetShake),
+        shakeAnimation(optionShake),
+      ]).start(() => {
         setTimeout(() => {
-          restartGame(true);
-        }, 300); // Add a little delay for visual feedback
-      } else {
-        // If not a match, reset the target shape position
-        setTimeout(() => {
+          setAvailableShapes((prev) =>
+            prev.filter((shape) => shape !== selectedShape)
+          );
+
+          // Automatically highlight the next available shape
+          setCurrentIndex((prev) => {
+            const currentShape = shapes[prev];
+            const nextIndex = availableShapes.indexOf(currentShape) + 1;
+            return nextIndex < availableShapes.length ? nextIndex : 0;
+          });
+
           restartGame(false);
-        }, 200); // Add a little delay for visual feedback
+        }, 200);
+      });
+    }
+  });
+};
+
+
+  // const animateToSelected = () => {
+  //   setStopped(true);
+  //   const selectedShape = shapes[currentIndex];
+  //   const x = optionPositions[currentIndex];
+  //   const y = height - (optionShapesInitialSize + 50);
+
+  //   Animated.timing(position, {
+  //     toValue: {
+  //       x: x - targetShapeInitialSize / 2,
+  //       y: y - targetShapeInitialSize / 2,
+  //     },
+  //     duration: 300,
+  //     easing: Easing.linear,
+  //     useNativeDriver: true,
+  //   }).start(() => {
+  //     if (selectedShape === targetShapeType) {
+  //       setShapesMatched(true);
+  //       playCheeringSound();
+  //       setTimeout(() => restartGame(true), 1500);
+  //     } else {
+  //       Animated.parallel([
+  //         shakeAnimation(targetShake),
+  //         shakeAnimation(optionShake),
+  //       ]).start(() => {
+  //         setTimeout(() => {
+  //           setAvailableShapes((prev) =>
+  //             prev.filter((shape) => shape !== selectedShape)
+  //           );
+  //           restartGame(false);
+  //         }, 200);
+  //       });
+  //     }
+  //   });
+  // };
+
+  // Restart on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      restartGame(true);
+    }, [])
+  );
+
+  const restartGame = (resetShapes = false) => {
+    position.stopAnimation(() => {
+      if (resetShapes) {
+        const newShapes = GetRandomShapes();
+        setShapes(newShapes);
+        setAvailableShapes(newShapes);
+        setTargetShapeType(
+          newShapes[Math.floor(Math.random() * newShapes.length)]
+        );
+        setCurrentIndex(0);
       }
+
+      position.setValue({
+        x: width / 2 - targetShapeInitialSize / 2,
+        y: height / 3 - targetShapeInitialSize,
+      });
+
+      targetShake.setValue(0);
+      optionShake.setValue(0);
+      setShapesMatched(false);
+      setStopped(false);
     });
   };
 
-  const restartGame = (shouldResetShapes = false) => {
-    if (shouldResetShapes) {
-      const newShapes = GetRandomShapes();
-      setShapes(newShapes);
-      setTargetShapeType(newShapes[Math.floor(Math.random() * newShapes.length)]);
-      setCurrentIndex(0);
-    }
-    position.setValue({ 
-      x: width / 2 - targetShapeInitialSize / 2, 
-      y: height / 3 - targetShapeInitialSize / 2 
+  const renderShapeOptions = () => {
+    return shapes.map((shape, i) => {
+      if (!availableShapes.includes(shape)) return null;
+
+      const x = optionPositions[i];
+      const y = height - (optionShapesInitialSize + 50);
+      const isSelected = i === currentIndex;
+      const isCorrect = shape === targetShapeType;
+
+      return (
+        <AnimatedG
+          key={`shape-${i}`}
+          transform={
+            isSelected && !shapesMatched && !isCorrect
+              ? optionShake.interpolate({
+                  inputRange: [-10, 10],
+                  outputRange: [`translate(-10, 0)`, `translate(10, 0)`],
+                })
+              : `translate(0, 0)`
+          }
+        >
+          {GetFormattedShape({
+            type: shape,
+            x,
+            y,
+            size: optionShapesInitialSize,
+            fill: 'none',
+            stroke:
+              shapesMatched && isCorrect
+                ? 'green'
+                : isSelected
+                ? 'red'
+                : 'white',
+            strokeWidth: 20,
+          })}
+        </AnimatedG>
+      );
     });
-    setStopped(false);
   };
 
   return (
-    <TouchableWithoutFeedback onPress={animateToSelected}>
-      <View className="flex-1 bg-black">
-        {/* Animated target shape */}
-        <Animated.View
-          style={{
-            position: 'absolute',
-            transform: position.getTranslateTransform(),
-          }}
-        >
-          <Svg height={targetShapeInitialSize} width={targetShapeInitialSize}>
-            {GetFormattedShape({
-              type: targetShapeType,
-              x: targetShapeInitialSize / 2,
-              y: targetShapeInitialSize / 2,
-              size: targetShapeInitialSize,
-              stroke: 'white',
-              fill: 'white'
-            })}
+    <SafeAreaView className="flex-1 bg-black">
+      <GameHeader />
+      <TouchableWithoutFeedback onPress={animateToSelected}>
+        <View className="flex-1">
+          <Animated.View
+            style={{
+              position: 'absolute',
+              transform: [
+                ...position.getTranslateTransform(),
+                { translateX: targetShake },
+              ],
+            }}
+          >
+            <Svg height={targetShapeInitialSize} width={targetShapeInitialSize}>
+              {GetFormattedShape({
+                type: targetShapeType,
+                x: targetShapeInitialSize / 2,
+                y: targetShapeInitialSize / 2,
+                size: targetShapeInitialSize,
+                fill: shapesMatched ? 'green' : 'white',
+                stroke: shapesMatched ? 'green' : 'white',
+              })}
+            </Svg>
+          </Animated.View>
+
+          <Svg height={height} width={width} className="absolute top-0 left-0">
+            {renderShapeOptions()}
           </Svg>
-        </Animated.View>
-
-        {/* Render shape options */}
-        <Svg height={height} width={width} className="absolute top-0 left-0">
-          {formattedOptions}
-        </Svg>
-
-        {/* Game Header */}
-        <GameHeader className="absolute top-0 right-0" />
-      </View>
-    </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 }
-
